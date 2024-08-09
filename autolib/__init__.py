@@ -30,13 +30,19 @@ def __getattr__(name):
         }
 
         data = {
-            'model':"gpt-3.5-turbo",
+            #'model':"gpt-3.5-turbo",
+            'model':"gpt-4o-2024-08-06",
             'messages': [
                 {
                     "role": "system",
                     "content": """Generate python3 code that implements this function.
 Don't answer with anything but the python code.
-Do not under any circumstances import modules from outside the python standard library"""
+Do not under any circumstances import modules from outside the python standard library
+All code must be included and be runnable, don't leave anything out
+Implement all parts of the function
+
+All imports needs to be done inside the function
+"""
                 },
                 {
                     "role": "user",
@@ -64,8 +70,8 @@ Do not under any circumstances import modules from outside the python standard l
             args_list += f"- {type(arg)}\n"
 
         kwargs_list = "Keyword arguments:\n"
-        for name, arg in kwargs:
-            args_list += f"{name} - {type(arg)}\n"
+        for kwname, arg in kwargs.items():
+            args_list += f"{kwname} - {type(arg)}\n"
 
         prompt = f"""Generate a function with name '{name}' that takes in the following arguments:
 {args_list}
@@ -77,14 +83,17 @@ Do not under any circumstances import modules from outside the python standard l
     def method(*args, **kwargs):
 
         prompt = generatePrompt(name, args, kwargs)
-        logger.debug("Generated prompt")
+        logger.debug(f"Generated prompt for method: {name}")
         logger.debug(prompt)
 
-        response = generateCodeFromOpenAI(prompt)
+        response = generateCodeFromOpenAI(prompt).strip()
+
+        logger.debug(f"Raw response\n{response}")
 
         # Remove first and last line when chatGTP returns what language it responds in
         if "python" in response.split("\n")[0]:
-            response = "\n".join(response.split("\n")[1:-1])
+            response = "\n".join(response.split("\n")[1:])
+            response = response.split('```')[0]
         response = textwrap.dedent(response)
 
         logger.info(f"Generated function:\n{response}")
