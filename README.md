@@ -7,9 +7,6 @@ This is basically remote code execution as a library.
 - DO NOT use this in any real project
 - DO have fun!
 
-## Dependencies
-This library depends on the "openai" library. Install it with: "pip3 install openai"
-
 ## Usage
 - Step 1: Put your openAI api key in the environment variable 'OPENAI_API_KEY'
 - Step 2: import autolib
