@@ -1,8 +1,8 @@
-# world.py
-from openai import OpenAI
+import http.client
+import json
 import os
-
 import logging
+import textwrap
 
 logger = logging.getLogger("autolib")
 logger.setLevel(logging.DEBUG)
@@ -18,25 +18,44 @@ aimethods = {}
 
 
 def __getattr__(name):
+
     def generateCodeFromOpenAI(prompt):
-        
-        client = OpenAI(
-            # This is the default and can be omitted
-            api_key=os.environ.get("OPENAI_API_KEY"),
-        )
 
-        logger.debug(f"Fetching results for prompt: {prompt}")
+        conn = http.client.HTTPSConnection("api.openai.com")
+        endpoint = "/v1/chat/completions"
 
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Generate python3 code that implements this function. Don't answer with anything but the python code. Feel free to import things from the python standard libraries inside this function if needed"},
-                {"role": "user", "content": prompt}
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {os.environ.get("OPENAI_API_KEY")}'
+        }
+
+        data = {
+            'model':"gpt-3.5-turbo",
+            'messages': [
+                {
+                    "role": "system",
+                    "content": """Generate python3 code that implements this function.
+Don't answer with anything but the python code.
+Do not under any circumstances import modules from outside the python standard library"""
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
             ]
-        )
-        logger.debug("Got response")
-        logger.debug(response.choices[0].message.content)
-        return response.choices[0].message.content
+        }
+
+        json_data = json.dumps(data)
+
+        conn.request("POST", endpoint, body=json_data, headers=headers)
+
+        response = conn.getresponse()
+
+        response_data = json.load(response)
+
+        logger.debug(response_data)
+
+        return response_data['choices'][0]['message']['content']
 
     def generatePrompt(name, args, kwargs):
 
@@ -56,26 +75,26 @@ def __getattr__(name):
 
     # This method is called when trying to access a method that doesn't exist
     def method(*args, **kwargs):
-        logger.debug(f"Method '{name}' called with args: {args} and kwargs: {kwargs}")
+
         prompt = generatePrompt(name, args, kwargs)
         logger.debug("Generated prompt")
         logger.debug(prompt)
 
         response = generateCodeFromOpenAI(prompt)
 
-        # Remove first and last line
-        response = "\n".join(response.split("\n")[1:-1])
+        # Remove first and last line when chatGTP returns what language it responds in
+        if "python" in response.split("\n")[0]:
+            response = "\n".join(response.split("\n")[1:-1])
+        response = textwrap.dedent(response)
+
+        logger.info(f"Generated function:\n{response}")
 
         aimethods[name] = {'text': response}
-
-        logger.debug(f"aimethods: {aimethods}")
 
         # This is very dangerous. Please don't use this outside a sandbox!!!!
         exec(response)
 
-        aimethods[name]['function'] = locals['name']
-
-        logger.debug("Adding the function to globals")
+        aimethods[name]['function'] = locals()[name]
 
         globals()[name] = locals()[name]
 
