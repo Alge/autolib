@@ -8,7 +8,7 @@ This is basically remote code execution as a library.
 - DO have fun!
 
 ## Usage
-- Step 1: Put your openAI api key in the environment variable 'OPENAI_API_KEY'
+- Step 1: Put your openAI api key in the environment variable 'OPENAI_API_KEY'. For example add ```export OPENAI_API_KEY='[key]'``` to your .bashrc file
 - Step 2: import autolib
 - Step 3: write a descriptive function name and run it, for example: "autolib.addTheseTwoNumbersTogetherAndDivideWith8(28, 3)"
 - Step 4: ???
