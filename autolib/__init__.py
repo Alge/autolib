@@ -159,11 +159,13 @@ Do not include sample usage of the function.\n"""
         logger.debug(_aimethods[name])
 
         # This is very dangerous. Please don't use this outside a sandbox...
-        exec(response)
+        exec(response, globals())
 
-        _aimethods[name]['function'] = locals()[name]
+        # Now the function is available in the global scope
+        _aimethods[name]['function'] = globals()[name]
 
-        globals()[name] = locals()[name]
+        # Bind the function to the global namespace for future access
+        globals()[name] = _aimethods[name]['function']
 
         last_exception = None
         while 1: # Try a few times
